@@ -1,0 +1,3 @@
+#!/bin/bash
+
+afl-fuzz -i ~/afl/binutils-2.25/afl_in -o ~/afl/binutils-2.25/afl_out ~/afl/binutils-2.25/binutils/readelf @@
