@@ -7701,7 +7701,11 @@ static void save_cmdline(u32 argc, char** argv) {
 
 void yhget(){
   int num;
-  scanf("%d", &num);
+  while(~scanf("%d", &num)){
+    if(num == 1)
+    break;
+  }
+  printf("ok\n");
 }
 
 #ifndef AFL_LIB
@@ -8008,6 +8012,7 @@ printf("fuzz start\n");
   while (1) {
 
     u8 skipped_fuzz;
+    printf("skipped_fuzz = %ld\n", skipped_fuzz);
 
     cull_queue();
 
@@ -8019,14 +8024,16 @@ printf("fuzz start\n");
       queue_cur         = queue;
 
       while (seek_to) {
+printf("seek_to = %lld\n", seek_to);
         current_entry++;
         seek_to--;
         queue_cur = queue_cur->next;
       }
 
       show_stats();
-
+yhget();
       if (not_on_tty) {
+      printf("not_on_tty = true");
         ACTF("Entering queue cycle %llu.", queue_cycle);
         fflush(stdout);
       }
@@ -8041,7 +8048,7 @@ printf("fuzz start\n");
       } else cycles_wo_finds = 0;
 
       prev_queued = queued_paths;
-
+yhget();
       if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST"))
         sync_fuzzers(use_argv);
 
