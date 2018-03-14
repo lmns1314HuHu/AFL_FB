@@ -321,6 +321,24 @@ enum {
   /* 05 */ FAULT_NOBITS
 };
 
+void yh_wait(){
+  int num;
+  while(~scanf("%d", &num)){
+    if(num == 1)
+      break;
+  }
+  printf("ok\n");
+}
+
+void yh_print_s(u8* buf){
+  printf("%s\n", buf);
+}
+
+void yh_write_file(u8* out_file, u8* buf, s32 len){
+  s32 fd = open(out_file, O_RDWR | O_CREAT, 0666);
+  write(fd, buf, len);
+  close(fd);
+}
 
 /* Get unix time in milliseconds */
 
@@ -7699,14 +7717,6 @@ static void save_cmdline(u32 argc, char** argv) {
 }
 
 
-void yhget(){
-  int num;
-  while(~scanf("%d", &num)){
-    if(num == 1)
-    break;
-  }
-  printf("ok\n");
-}
 
 #ifndef AFL_LIB
 
@@ -8008,11 +8018,10 @@ int main(int argc, char** argv) {
     if (stop_soon) goto stop_fuzzing;
   }
 
-printf("fuzz start\n");
+yh_print_s("fuzz started!\n");
   while (1) {
 
     u8 skipped_fuzz;
-    printf("skipped_fuzz = %ld\n", skipped_fuzz);
 
     cull_queue();
 
@@ -8024,14 +8033,13 @@ printf("fuzz start\n");
       queue_cur         = queue;
 
       while (seek_to) {
-printf("seek_to = %lld\n", seek_to);
         current_entry++;
         seek_to--;
         queue_cur = queue_cur->next;
       }
 
       show_stats();
-yhget();
+
       if (not_on_tty) {
       printf("not_on_tty = true");
         ACTF("Entering queue cycle %llu.", queue_cycle);
@@ -8048,7 +8056,7 @@ yhget();
       } else cycles_wo_finds = 0;
 
       prev_queued = queued_paths;
-yhget();
+
       if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST"))
         sync_fuzzers(use_argv);
 
@@ -8071,7 +8079,7 @@ yhget();
     current_entry++;
 
   }
-printf("fuzz finish\n");
+yh_print_s("fuzz finished!\n");
   if (queue_cur) show_stats();
 
   write_bitmap();
