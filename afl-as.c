@@ -62,7 +62,7 @@ static u8   be_quiet,           /* Quiet mode (no stderr output)        */
 static u32  inst_ratio = 100,   /* Instrumentation probability (%)      */
             as_par_cnt = 1;     /* Number of params to 'as'             */
 
-/* If we don't find --32 or --64 in the command line, default to 
+/* If we don't find --32 or --64 in the command line, default to
    instrumentation for whichever mode we were compiled with. This is not
    perfect, but should do the trick for almost all use cases. */
 
@@ -235,21 +235,22 @@ static void add_instrumentation(void) {
 #endif /* __APPLE__ */
 
   if (input_file) {
-
+printf("has input_file = %s\n", input_file);
     inf = fopen(input_file, "r");
     if (!inf) PFATAL("Unable to read '%s'", input_file);
 
   } else inf = stdin;
 
   outfd = open(modified_file, O_WRONLY | O_EXCL | O_CREAT, 0600);
-
+printf("modified file = %s\n", modified_file);
   if (outfd < 0) PFATAL("Unable to write to '%s'", modified_file);
 
   outf = fdopen(outfd, "w");
 
-  if (!outf) PFATAL("fdopen() failed");  
+  if (!outf) PFATAL("fdopen() failed");
 
   while (fgets(line, MAX_LINE, inf)) {
+//printf("%s", line);
 
     /* In some cases, we want to defer writing the instrumentation trampoline
        until after all the labels, macros, comments, etc. If we're in this
@@ -261,7 +262,7 @@ static void add_instrumentation(void) {
 
       fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
               R(MAP_SIZE));
-
+//printf("line[0] == 't'\n");
       instrument_next = 0;
       ins_lines++;
 
@@ -271,7 +272,10 @@ static void add_instrumentation(void) {
 
     fputs(line, outf);
 
-    if (pass_thru) continue;
+    if (pass_thru){
+//printf("pass_thru == true");
+        continue;
+        }
 
     /* All right, this is where the actual fun begins. For one, we only want to
        instrument the .text section. So, let's keep track of that in processed
@@ -291,7 +295,7 @@ static void add_instrumentation(void) {
           !strncmp(line + 2, "section\t__TEXT,__text", 21) ||
           !strncmp(line + 2, "section __TEXT,__text", 21)) {
         instr_ok = 1;
-        continue; 
+        continue;
       }
 
       if (!strncmp(line + 2, "section\t", 8) ||
@@ -436,7 +440,7 @@ static void add_instrumentation(void) {
         /* Function label (always instrumented, deferred mode). */
 
         instrument_next = 1;
-    
+
       }
 
     }
@@ -455,10 +459,10 @@ static void add_instrumentation(void) {
                           pass_thru ? " (pass-thru mode)" : "");
     else OKF("Instrumented %u locations (%s-bit, %s mode, ratio %u%%).",
              ins_lines, use_64bit ? "64" : "32",
-             getenv("AFL_HARDEN") ? "hardened" : 
+             getenv("AFL_HARDEN") ? "hardened" :
              (sanitizer ? "ASAN/MSAN" : "non-hardened"),
              inst_ratio);
- 
+
   }
 
 }
@@ -467,7 +471,6 @@ static void add_instrumentation(void) {
 /* Main entry point */
 
 int main(int argc, char** argv) {
-
   s32 pid;
   u32 rand_seed;
   int status;
@@ -481,7 +484,7 @@ int main(int argc, char** argv) {
   if (isatty(2) && !getenv("AFL_QUIET")) {
 
     SAYF(cCYA "afl-as " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
- 
+
   } else be_quiet = 1;
 
   if (argc < 2) {
@@ -506,10 +509,14 @@ int main(int argc, char** argv) {
   srandom(rand_seed);
 
   edit_params(argc, argv);
+printf("argc = %d\n", argc);
+for (int yhi = 0; yhi < argc; yhi++){
+printf("arg[%d] = %s\n", yhi, argv[yhi]);
+}
 
   if (inst_ratio_str) {
 
-    if (sscanf(inst_ratio_str, "%u", &inst_ratio) != 1 || inst_ratio > 100) 
+    if (sscanf(inst_ratio_str, "%u", &inst_ratio) != 1 || inst_ratio > 100)
       FATAL("Bad value of AFL_INST_RATIO (must be between 0 and 100)");
 
   }
