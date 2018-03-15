@@ -12,3 +12,4 @@ as
 .idea/
 CMakeLists.txt
 cmake-build-debug/
+yh.o
