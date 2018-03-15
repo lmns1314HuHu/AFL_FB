@@ -235,14 +235,14 @@ static void add_instrumentation(void) {
 #endif /* __APPLE__ */
 
   if (input_file) {
-printf("has input_file = %s\n", input_file);
+//printf("has input_file = %s\n", input_file);
     inf = fopen(input_file, "r");
     if (!inf) PFATAL("Unable to read '%s'", input_file);
 
   } else inf = stdin;
 
   outfd = open(modified_file, O_WRONLY | O_EXCL | O_CREAT, 0600);
-printf("modified file = %s\n", modified_file);
+//printf("modified file = %s\n", modified_file);
   if (outfd < 0) PFATAL("Unable to write to '%s'", modified_file);
 
   outf = fdopen(outfd, "w");
@@ -509,10 +509,10 @@ int main(int argc, char** argv) {
   srandom(rand_seed);
 
   edit_params(argc, argv);
-printf("argc = %d\n", argc);
-for (int yhi = 0; yhi < argc; yhi++){
-printf("arg[%d] = %s\n", yhi, argv[yhi]);
-}
+//printf("argc = %d\n", argc);
+//for (int yhi = 0; yhi < argc; yhi++){
+//printf("arg[%d] = %s\n", yhi, argv[yhi]);
+//}
 
   if (inst_ratio_str) {
 
