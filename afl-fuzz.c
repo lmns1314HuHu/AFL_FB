@@ -904,6 +904,16 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
     if (unlikely(*current) && unlikely(*current & *virgin)) {
 
+        yh_mark_start();
+        printf("*current = %lld\n", *current);
+        yh_check_bits_u64(*current);
+        printf("*virgin = %lld\n", *virgin);
+        yh_check_bits_u64(*virgin);
+        printf("unlikely(*current) = %ld\n", unlikely(*current));
+        printf("unlikely(*current & *virgin) = %ld\n", unlikely(*current & *virgin));
+        yh_wait();
+        yh_mark_end();
+
       if (likely(ret < 2)) {
 
         u8* cur = (u8*)current;
@@ -7706,7 +7716,9 @@ static void save_cmdline(u32 argc, char** argv) {
 /* Main entry point */
 
 int main(int argc, char** argv) {
-yh_check_ifdef();
+  yh_check_ifdef();
+  yh_wait();
+
   s32 opt;
   u64 prev_queued = 0;
   u32 sync_interval_cnt = 0, seek_to;
@@ -7939,7 +7951,6 @@ yh_check_ifdef();
     FATAL("Use AFL_PRELOAD instead of AFL_LD_PRELOAD");
 
   save_cmdline(argc, argv);
-
   fix_up_banner(argv[optind]);
 
   check_if_tty();
@@ -7952,6 +7963,42 @@ yh_check_ifdef();
 
   check_crash_handling();
   check_cpu_governor();
+
+    yh_mark_start();
+    printf("cpu_core_count = %d\n", cpu_core_count);
+    printf("crash_mode = =%d\n", crash_mode);
+    printf("doc_path = %s\n", doc_path);
+    printf("dumb_mode = %d\n", dumb_mode);
+    printf("exec_tmout = %lld\n", exec_tmout);
+    printf("exit_1 = %d\n", exit_1);
+    printf("extras_dir = %s\n", extras_dir);
+    printf("fast_cal = %d\n", fast_cal);
+    printf("force_deterministic = %d\n", force_deterministic);
+    printf("hang_tmout = %lld\n", hang_tmout);
+    printf("in_dir = %s\n", in_dir);
+    printf("in_place_resume = %d\n", in_place_resume);
+    printf("master_id = %lld\n", master_id);
+    printf("master_max = %lld\n", master_max);
+    printf("mem_limit = %lld\n", mem_limit);
+    printf("mem_limit_given = %d\n", mem_limit_given);
+    printf("no_arith = %d\n", no_arith);
+    printf("no_cpu_meter_red = %d\n", no_cpu_meter_red);
+    printf("no_forkserver = %d\n", no_forkserver);
+    printf("not_on_tty = %d\n", not_on_tty);
+    printf("orig_cmdline = %s\n", orig_cmdline);
+    printf("out_dir = %s\n", out_dir);
+    printf("out_file = %s\n", out_file);
+    printf("prev_queued = %lld\n", prev_queued);
+    printf("qemu_mode = %d\n", qemu_mode);
+    printf("shuffle_queue = %d\n", shuffle_queue);
+    printf("skip_deterministic = %d\n", skip_deterministic);
+    printf("sync_id = %s\n", sync_id);
+    printf("sync_interval_cnt = %lld\n", sync_interval_cnt);
+    printf("seek_to = %lld\n", seek_to);
+    printf("timeout_given = %d\n", timeout_given);
+    printf("use_banner = %s\n", use_banner);
+    printf("use_splicing = %d\n", use_splicing);
+    yh_mark_end();
 
   setup_post();
   setup_shm();
@@ -8001,7 +8048,7 @@ yh_check_ifdef();
     if (stop_soon) goto stop_fuzzing;
   }
 
-yh_print_s("fuzz started!\n");
+  yh_print_s("fuzz started!\n");
   while (1) {
 
     u8 skipped_fuzz;
@@ -8062,7 +8109,7 @@ yh_print_s("fuzz started!\n");
     current_entry++;
 
   }
-yh_print_s("fuzz finished!\n");
+  yh_print_s("fuzz finished!\n");
   if (queue_cur) show_stats();
 
   write_bitmap();
