@@ -904,15 +904,15 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
     if (unlikely(*current) && unlikely(*current & *virgin)) {
 
-        yh_mark_start();
-        printf("*current = %lld\n", *current);
-        yh_check_bits_u64(*current);
-        printf("*virgin = %lld\n", *virgin);
-        yh_check_bits_u64(*virgin);
-        printf("unlikely(*current) = %ld\n", unlikely(*current));
-        printf("unlikely(*current & *virgin) = %ld\n", unlikely(*current & *virgin));
-        yh_wait();
-        yh_mark_end();
+//        yh_mark_start();
+//        printf("*current = %lld\n", *current);
+//        yh_check_bits_u64(*current);
+//        printf("*virgin = %lld\n", *virgin);
+//        yh_check_bits_u64(*virgin);
+//        printf("unlikely(*current) = %ld\n", unlikely(*current));
+//        printf("unlikely(*current & *virgin) = %ld\n", unlikely(*current & *virgin));
+//        yh_wait();
+//        yh_mark_end();
 
       if (likely(ret < 2)) {
 
@@ -7717,7 +7717,6 @@ static void save_cmdline(u32 argc, char** argv) {
 
 int main(int argc, char** argv) {
   yh_check_ifdef();
-  yh_wait();
 
   s32 opt;
   u64 prev_queued = 0;
@@ -8048,6 +8047,7 @@ int main(int argc, char** argv) {
     if (stop_soon) goto stop_fuzzing;
   }
 
+    yh_wait();
   yh_print_s("fuzz started!\n");
   while (1) {
 
@@ -8071,7 +8071,6 @@ int main(int argc, char** argv) {
       show_stats();
 
       if (not_on_tty) {
-      printf("not_on_tty = true");
         ACTF("Entering queue cycle %llu.", queue_cycle);
         fflush(stdout);
       }
@@ -8087,14 +8086,24 @@ int main(int argc, char** argv) {
 
       prev_queued = queued_paths;
 
-      if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST"))
+      if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST")) {
+        yh_mark_start();
+        printf("sync_id = %s\n", sync_id);
+        yh_mark_end();
         sync_fuzzers(use_argv);
+      }
 
     }
 
     skipped_fuzz = fuzz_one(use_argv);
+      yh_mark_start();
+      printf("skipped_fuzz = %d\n", skipped_fuzz);
+      yh_mark_end();
 
     if (!stop_soon && sync_id && !skipped_fuzz) {
+      yh_mark_start();
+      printf("sync_id = %s\n", sync_id);
+      yh_mark_end();
 
       if (!(sync_interval_cnt++ % SYNC_INTERVAL))
         sync_fuzzers(use_argv);
