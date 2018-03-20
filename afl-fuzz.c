@@ -1155,6 +1155,26 @@ EXP_ST void init_count_class16(void) {
 #ifdef __x86_64__
 
 static inline void classify_counts(u64* mem) {
+//yh_mark_start();
+//int yhi = 0;
+////int yhcnt = 1;
+//while (yhi < 65536){
+//if(count_class_lookup16[yhi] != yhi){
+//    printf("no! %d :: %d\n", count_class_lookup16[yhi], yhi);
+//}
+////if(yhi != yhcnt && count_class_lookup16[yhi] != count_class_lookup16[yhcnt / 2]){
+////    printf("no! = %d\n", yhi);
+////}
+////if(yhi == yhcnt){
+////    yhcnt <<= 1;
+////    printf("\n");
+////}
+////else printf(" ");
+////printf("%d",count_class_lookup16[yhi]);
+//yhi++;
+//}
+//yh_wait();
+//yh_mark_end();
 
   u32 i = MAP_SIZE >> 3;
 
@@ -2096,6 +2116,17 @@ EXP_ST void init_forkserver(char** argv) {
                            "allocator_may_return_null=1:"
                            "msan_track_origins=0", 0);
 
+      yh_mark_start();
+      yh_fprintf_str("/home/yunhao/test/log", "a", target_path);
+      yh_fprintf_str("/home/yunhao/test/log", "a", "\n");
+      int yhi = 0;
+      while(argv[yhi]){
+          yh_fprintf_str("/home/yunhao/test/log", "a", argv[yhi]);
+          yh_fprintf_str("/home/yunhao/test/log", "a", "\n");
+          yhi++;
+      }
+      yh_mark_end();
+
     execv(target_path, argv);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
@@ -2141,6 +2172,7 @@ EXP_ST void init_forkserver(char** argv) {
 
   if (waitpid(forksrv_pid, &status, 0) <= 0)
     PFATAL("waitpid() failed");
+
 
   if (WIFSIGNALED(status)) {
 
@@ -2270,6 +2302,9 @@ EXP_ST void init_forkserver(char** argv) {
    information. The called program will update trace_bits[]. */
 
 static u8 run_target(char** argv, u32 timeout) {
+    yh_mark_start();
+    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> run_target\n");
+    yh_mark_end();
 
   static struct itimerval it;
   static u32 prev_timed_out = 0;
@@ -2542,6 +2577,9 @@ static void show_stats(void);
 static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
                          u32 handicap, u8 from_queue) {
 
+  yh_mark_start();
+  printf("####yh#### Enter >>>> afl-fuzz.c  >>>> calibrate_case\n");
+  yh_mark_end();
   static u8 first_trace[MAP_SIZE];
 
   u8  fault = 0, new_bits = 0, var_detected = 0,
@@ -2706,6 +2744,9 @@ static void check_map_coverage(void) {
    expected. This is done only for the initial inputs, and only once. */
 
 static void perform_dry_run(char** argv) {
+  yh_mark_start();
+  printf("####yh#### Enter >>>> afl-fuzz.c  >>>> perform_dry_run\n");
+  yh_mark_end();
 
   struct queue_entry* q = queue;
   u32 cal_failures = 0;
@@ -2732,6 +2773,7 @@ static void perform_dry_run(char** argv) {
     close(fd);
 
     res = calibrate_case(argv, q, use_mem, 0, 1);
+
     ck_free(use_mem);
 
     if (stop_soon) return;
@@ -4596,6 +4638,9 @@ abort_trimming:
    a helper function for fuzz_one(). */
 
 EXP_ST u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
+    yh_mark_start();
+    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> common_fuzz_stuff(char** argv, u8* out_buf, u32 len)\n");
+    yh_mark_end();
 
   u8 fault;
 
@@ -4949,6 +4994,9 @@ static u8 could_be_interest(u32 old_val, u32 new_val, u8 blen, u8 check_le) {
    skipped or bailed out. */
 
 static u8 fuzz_one(char** argv) {
+    yh_mark_start();
+    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> fuzz_one(char** argv)\n");
+    yh_mark_end();
 
   s32 len, fd, temp_len, i, j;
   u8  *in_buf, *out_buf, *orig_in, *ex_tmp, *eff_map = 0;
@@ -4968,6 +5016,9 @@ static u8 fuzz_one(char** argv) {
   if (queue_cur->depth > 1) return 1;
 
 #else
+    yh_mark_start();
+    printf("executing this part\n");
+    yh_mark_end();
 
   if (pending_favored) {
 
@@ -7716,6 +7767,9 @@ static void save_cmdline(u32 argc, char** argv) {
 /* Main entry point */
 
 int main(int argc, char** argv) {
+    yh_mark_start();
+    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> main\n");
+    yh_mark_end();
   yh_check_ifdef();
 
   s32 opt;
@@ -8047,7 +8101,6 @@ int main(int argc, char** argv) {
     if (stop_soon) goto stop_fuzzing;
   }
 
-    yh_wait();
   yh_print_s("fuzz started!\n");
   while (1) {
 
@@ -8096,9 +8149,6 @@ int main(int argc, char** argv) {
     }
 
     skipped_fuzz = fuzz_one(use_argv);
-      yh_mark_start();
-      printf("skipped_fuzz = %d\n", skipped_fuzz);
-      yh_mark_end();
 
     if (!stop_soon && sync_id && !skipped_fuzz) {
       yh_mark_start();
