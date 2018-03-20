@@ -35,6 +35,10 @@ void yh_change_binary_to_ascii(u8* in_file, u8* out_file);
 
 void yh_change_binary_to_bits(u8* in_file, u8* out_file);
 
+void yh_warn();
+
+void yh_print_tb_to_file(void *trace_bits, u8* out_file);
+
 //void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped);
 
 //void yh_read_file(u8* in_file, u8* buf, s32 len);

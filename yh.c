@@ -327,6 +327,26 @@ void yh_change_binary_to_bits(u8* in_file, u8* out_file){
     fclose(out);
 }
 
+void yh_warn(){
+    printf("==================warn==================\n");
+}
+
+void yh_print_tb_to_file(void *trace_bits, u8* out_file){
+    u16* tb = (u16*) trace_bits;
+//    FILE* out = fopen(out_file, "w");
+    int cnt = 0;
+    for(int i = 0; i < 32768; i++){
+        if((int)tb[i] != 0)
+            printf("%4d ", tb[i]);
+        cnt++;
+        if(cnt == 256){
+            cnt = 0;
+//            fprintf(out, "\n");
+        }
+    }
+//    fclose(out);
+}
+
 //void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped){
 //    if(apped == 0){
 //        s32 fd = open(out_file, O_RDWR | O_CREAT, 0666);
