@@ -39,6 +39,10 @@ void yh_warn();
 
 void yh_print_tb_to_file(void *trace_bits, u8* out_file);
 
+void yh_copy_array(u8* array, u8* array_copy, int len);
+
+void yh_check_diff(u8* array, u8* array_copy, int len);
+
 //void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped);
 
 //void yh_read_file(u8* in_file, u8* buf, s32 len);

@@ -336,7 +336,7 @@ void yh_print_tb_to_file(void *trace_bits, u8* out_file){
 //    FILE* out = fopen(out_file, "w");
     int cnt = 0;
     for(int i = 0; i < 32768; i++){
-        if((int)tb[i] != 0)
+        if((int)tb[i] != 65535)
             printf("%4d ", tb[i]);
         cnt++;
         if(cnt == 256){
@@ -345,6 +345,26 @@ void yh_print_tb_to_file(void *trace_bits, u8* out_file){
         }
     }
 //    fclose(out);
+}
+
+void yh_copy_array(u8* array, u8* array_copy, int len){
+    memcpy(array_copy, array, len);
+}
+
+void yh_check_diff(u8* array, u8* array_copy, int len){
+    int flag = 0;
+    for (int i = 0; i < len; i++){
+        if(array[i] != array_copy[i]){
+            flag = 1;
+            break;
+        }
+    }
+    if(flag){
+        printf("is changed by something!\n");
+    }
+    else{
+        printf("is virgin!\n");
+    }
 }
 
 //void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped){
