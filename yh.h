@@ -9,6 +9,7 @@
 #include <string.h>
 #include "types.h"
 #include <sys/file.h>
+#include <limits.h>
 
 void yh_wait();
 
@@ -43,6 +44,10 @@ void yh_copy_array(u8* array, u8* array_copy, int len);
 
 void yh_check_diff(u8* array, u8* array_copy, int len);
 
-//void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped);
+void yh_setup_bitmap(u8* total_bitmap, u8* single_bitmap);
 
-//void yh_read_file(u8* in_file, u8* buf, s32 len);
+int yh_read_total_bitmap(void* total_bitmap, u8* file_name, u32 len);
+
+int yh_read_single_bitmap(u8* single_bitmap, u8* file_name, u32 len);
+
+void yh_write_single_bitmap(u8* single_bitmap, u8* file_name, u32 len);

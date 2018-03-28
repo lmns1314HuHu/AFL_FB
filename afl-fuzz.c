@@ -137,6 +137,10 @@ static s32 forksrv_pid,               /* PID of the fork server           */
 
 EXP_ST u8* trace_bits;                /* SHM with instrumentation bitmap  */
 
+EXP_ST u8 yh_single_bitmap[MAP_SIZE];
+EXP_ST u64 yh_total_cnt;
+EXP_ST u32 yh_total_num;
+EXP_ST u8 yh_single_bitmap_change_flag;
 EXP_ST u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
            virgin_tmout[MAP_SIZE],    /* Bits we haven't seen in tmouts   */
            virgin_crash[MAP_SIZE];    /* Bits we haven't seen in crashes  */
@@ -226,6 +230,10 @@ static FILE* plot_file;               /* Gnuplot output file              */
 
 struct queue_entry {
 
+    u8 yh_skipped_last_cycle;
+    u64 yh_single_cnt;
+    u32 yh_single_num;
+    u8 yh_has_file;
   u8* fname;                          /* File name for the test case      */
   u32 len;                            /* Input length                     */
 
@@ -257,6 +265,7 @@ static struct queue_entry *queue,     /* Fuzzing queue (linked list)      */
                           *queue_cur, /* Current offset within the queue  */
                           *queue_top, /* Top of the list                  */
                           *q_prev100; /* Previous 100 marker              */
+static struct queue_entry *yh_queue_prev;
 
 static struct queue_entry*
   top_rated[MAP_SIZE];                /* Top entries for bitmap bytes     */
@@ -778,6 +787,10 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
 
   struct queue_entry* q = ck_alloc(sizeof(struct queue_entry));
 
+  q->yh_single_cnt = 0;
+  q->yh_single_num = 0;
+  q->yh_has_file = 0;
+  q->yh_skipped_last_cycle = 0;
   q->fname        = fname;
   q->len          = len;
   q->depth        = cur_depth + 1;
@@ -904,15 +917,6 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
     if (unlikely(*current) && unlikely(*current & *virgin)) {
 
-//        yh_mark_start();
-//        printf("*current = %lld\n", *current);
-//        yh_check_bits_u64(*current);
-//        printf("*virgin = %lld\n", *virgin);
-//        yh_check_bits_u64(*virgin);
-//        printf("unlikely(*current) = %ld\n", unlikely(*current));
-//        printf("unlikely(*current & *virgin) = %ld\n", unlikely(*current & *virgin));
-//        yh_wait();
-//        yh_mark_end();
 
       if (likely(ret < 2)) {
 
@@ -1155,26 +1159,6 @@ EXP_ST void init_count_class16(void) {
 #ifdef __x86_64__
 
 static inline void classify_counts(u64* mem) {
-//yh_mark_start();
-//int yhi = 0;
-////int yhcnt = 1;
-//while (yhi < 65536){
-//if(count_class_lookup16[yhi] != yhi){
-//    printf("no! %d :: %d\n", count_class_lookup16[yhi], yhi);
-//}
-////if(yhi != yhcnt && count_class_lookup16[yhi] != count_class_lookup16[yhcnt / 2]){
-////    printf("no! = %d\n", yhi);
-////}
-////if(yhi == yhcnt){
-////    yhcnt <<= 1;
-////    printf("\n");
-////}
-////else printf(" ");
-////printf("%d",count_class_lookup16[yhi]);
-//yhi++;
-//}
-//yh_wait();
-//yh_mark_end();
 
   u32 i = MAP_SIZE >> 3;
 
@@ -2116,17 +2100,6 @@ EXP_ST void init_forkserver(char** argv) {
                            "allocator_may_return_null=1:"
                            "msan_track_origins=0", 0);
 
-      yh_mark_start();
-      yh_fprintf_str("/home/yunhao/test/log", "a", target_path);
-      yh_fprintf_str("/home/yunhao/test/log", "a", "\n");
-      int yhi = 0;
-      while(argv[yhi]){
-          yh_fprintf_str("/home/yunhao/test/log", "a", argv[yhi]);
-          yh_fprintf_str("/home/yunhao/test/log", "a", "\n");
-          yhi++;
-      }
-      yh_mark_end();
-
     execv(target_path, argv);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
@@ -2302,9 +2275,6 @@ EXP_ST void init_forkserver(char** argv) {
    information. The called program will update trace_bits[]. */
 
 static u8 run_target(char** argv, u32 timeout) {
-//    yh_mark_start();
-//    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> run_target\n");
-//    yh_mark_end();
 
   static struct itimerval it;
   static u32 prev_timed_out = 0;
@@ -2469,10 +2439,121 @@ static u8 run_target(char** argv, u32 timeout) {
 
   MEM_BARRIER();
 
-//  yh_mark_start();
-//  printf("want to print trace_bits array\n");
-//  yh_print_tb_to_file(trace_bits, "/home/yunhao/test/huhu");
-//  yh_mark_end();
+    if(queue_cur) {
+        if(yh_queue_prev != queue_cur){
+            if(yh_queue_prev) {
+                u8 *prev_fname = alloc_printf("%s_single_bitmap", yh_queue_prev->fname);
+                if (yh_single_bitmap_change_flag) {
+                    yh_queue_prev->yh_has_file = 1;
+                    yh_write_single_bitmap(yh_single_bitmap, prev_fname, (MAP_SIZE >> 3));
+                    yh_single_bitmap_change_flag = 0;
+                }
+                ck_free(prev_fname);
+            }
+
+            u8 *single_bitmap_name = alloc_printf("%s_single_bitmap", queue_cur->fname);
+
+//            if(queue_cur->yh_has_file){
+//                FILE* yh_in = fopen(single_bitmap_name, "r");
+//                u8 yh_buf[MAP_SIZE];
+//                memset(yh_buf, 0xff, sizeof(yh_buf));
+//                for (int i = 0; i < MAP_SIZE; i++){
+//                    if(yh_buf[i] != 255){
+//                        yh_fprintf_str("/home/yunhao/test/not255", "a", single_bitmap_name);
+//                        yh_fprintf_str("/home/yunhao/test/not255", "a", "\n not 255 \n");
+//                        break;
+//                    }
+//                }
+//                fread(yh_buf, 8, (MAP_SIZE >> 3), yh_in);
+//                fclose(yh_in);
+//
+//                yh_fprintf_str("/home/yunhao/test/beforefread", "a", single_bitmap_name);
+//                yh_fprintf_str("/home/yunhao/test/beforefread", "a", "\n");
+//                for (int i = 0; i < MAP_SIZE; i++){
+//                    if(yh_buf[i] != 0){
+//                        u8 *outstr = alloc_printf("%d : %d\n", i, yh_buf[i]);
+//                        yh_fprintf_str("/home/yunhao/test/beforefread", "a", outstr);
+//                        ck_free(outstr);
+//                    }
+//                }
+//                yh_fprintf_str("/home/yunhao/test/beforefread", "a", "\n");
+//            }
+
+            u32 yhret = 0;
+            if(queue_cur->yh_has_file)
+                yhret = yh_read_single_bitmap(yh_single_bitmap, single_bitmap_name, (MAP_SIZE >> 3));
+//            yh_fprintf_str("/home/yunhao/test/log", "a", single_bitmap_name);
+            if(yhret == 0) {
+                memset(yh_single_bitmap, 0, sizeof(yh_single_bitmap));
+//                yh_fprintf_str("/home/yunhao/test/log", "a", "\n no file \n");
+            }
+//            else
+//                yh_fprintf_str("/home/yunhao/test/log", "a", "\n has file \n");
+//            yh_fprintf_str("/home/yunhao/test/trace_bits", "a", "\n after read function \n");
+//            yh_print_tb_to_file(yh_single_bitmap, "/home/yunhao/test/trace_bits");
+
+//            if(queue_cur->yh_has_file){
+//                yh_fprintf_str("/home/yunhao/test/afterfread", "a", single_bitmap_name);
+//                yh_fprintf_str("/home/yunhao/test/afterfread", "a", "\n");
+//                for (int i = 0; i < MAP_SIZE; i++){
+//                    if(yh_single_bitmap[i] != 0){
+//                        u8 *outstr = alloc_printf("%d : %d\n", i, yh_single_bitmap[i]);
+//                        yh_fprintf_str("/home/yunhao/test/afterfread", "a", outstr);
+//                        ck_free(outstr);
+//                    }
+//                }
+//                yh_fprintf_str("/home/yunhao/test/afterfread", "a", "\n");
+//            }
+
+//            yh_fprintf_str("/home/yunhao/test/singlechanging", "a", "\n");
+//            yh_fprintf_str("/home/yunhao/test/singlechanging", "a", single_bitmap_name);
+//            yh_fprintf_str("/home/yunhao/test/singlechanging", "a", "\n");
+
+            ck_free(single_bitmap_name);
+        }
+        yh_queue_prev = queue_cur;
+
+        u64 *yh_ptr = (u64*)trace_bits;
+        u8 *yh_ptr_trival;
+
+        u32 yh_cnt = MAP_SIZE >> 3;
+        u32 yh_idx = 0, yh_idx_trival = 0;
+
+        while (yh_cnt--) {
+            if (*yh_ptr) {
+                yh_ptr_trival = (u8*) yh_ptr;
+
+                for (yh_idx_trival = 0; yh_idx_trival < 8; yh_idx_trival++, yh_ptr_trival++) {
+                    if (*yh_ptr_trival) {
+                        u32 idx = ((yh_idx) << 3) | yh_idx_trival;
+                        if (!yh_single_bitmap[idx]) {
+                            queue_cur->yh_single_num++;
+                            yh_total_num++;
+//                            u8* outstr = alloc_printf("%u\n", queue_cur->yh_single_num);
+//                            yh_fprintf_str("/home/yunhao/test/singlechanging", "a", outstr);
+//                            ck_free(outstr);
+                            yh_single_bitmap[idx] |= 1;
+                            yh_single_bitmap_change_flag = 1;
+                        }
+                        if (queue_cur->yh_single_cnt < ULLONG_MAX - UINT_MAX) {
+//                            u8 *outstr = alloc_printf("%llu + %u = %llu\n", queue_cur->yh_single_cnt, (u32)(*yh_ptr_trival), queue_cur->yh_single_cnt + (u32)(*yh_ptr_trival));
+//                            yh_fprintf_str("/home/yunhao/test/singlechanging", "a", outstr);
+//                            ck_free(outstr);
+                            queue_cur->yh_single_cnt += (u32) (*yh_ptr_trival);
+                        }
+                        if (yh_total_cnt < ULLONG_MAX - UINT_MAX) {
+//                            u8 *outstr = alloc_printf("%llu + %u = %llu\n", yh_total_cnt, (u32)(*yh_ptr_trival), yh_total_cnt + (u32)(*yh_ptr_trival));
+//                            yh_fprintf_str("/home/yunhao/test/totalchanging", "a", outstr);
+//                            ck_free(outstr);
+                            yh_total_cnt += (u32) (*yh_ptr_trival);
+                        }
+                    }
+                }
+            }
+            yh_ptr++;
+            yh_idx++;
+        }
+    }
 
   tb4 = *(u32*)trace_bits;
 
@@ -2582,9 +2663,6 @@ static void show_stats(void);
 static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
                          u32 handicap, u8 from_queue) {
 
-//  yh_mark_start();
-//  printf("####yh#### Enter >>>> afl-fuzz.c  >>>> calibrate_case\n");
-//  yh_mark_end();
   static u8 first_trace[MAP_SIZE];
 
   u8  fault = 0, new_bits = 0, var_detected = 0,
@@ -2642,7 +2720,6 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
     cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
 
     if (q->exec_cksum != cksum) {
-
       u8 hnb = has_new_bits(virgin_bits);
       if (hnb > new_bits) new_bits = hnb;
 
@@ -2749,9 +2826,6 @@ static void check_map_coverage(void) {
    expected. This is done only for the initial inputs, and only once. */
 
 static void perform_dry_run(char** argv) {
-//  yh_mark_start();
-//  printf("####yh#### Enter >>>> afl-fuzz.c  >>>> perform_dry_run\n");
-//  yh_mark_end();
 
   struct queue_entry* q = queue;
   u32 cal_failures = 0;
@@ -4643,9 +4717,6 @@ abort_trimming:
    a helper function for fuzz_one(). */
 
 EXP_ST u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
-//    yh_mark_start();
-//    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> common_fuzz_stuff(char** argv, u8* out_buf, u32 len)\n");
-//    yh_mark_end();
 
   u8 fault;
 
@@ -4999,9 +5070,6 @@ static u8 could_be_interest(u32 old_val, u32 new_val, u8 blen, u8 check_le) {
    skipped or bailed out. */
 
 static u8 fuzz_one(char** argv) {
-//    yh_mark_start();
-//    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> fuzz_one(char** argv)\n");
-//    yh_mark_end();
 
   s32 len, fd, temp_len, i, j;
   u8  *in_buf, *out_buf, *orig_in, *ex_tmp, *eff_map = 0;
@@ -7769,9 +7837,6 @@ static void save_cmdline(u32 argc, char** argv) {
 /* Main entry point */
 
 int main(int argc, char** argv) {
-//    yh_mark_start();
-//    printf("####yh#### Enter >>>> afl-fuzz.c  >>>> main\n");
-//    yh_mark_end();
   yh_check_ifdef();
 
 
@@ -8058,6 +8123,11 @@ int main(int argc, char** argv) {
 
   setup_post();
   setup_shm();
+    memset(yh_single_bitmap, 0, sizeof(yh_single_bitmap));
+  yh_total_cnt = 0;
+  yh_total_num = 0;
+    yh_queue_prev = NULL;
+    yh_single_bitmap_change_flag = 0;
   init_count_class16();
 
   setup_dirs_fds();
@@ -8085,19 +8155,6 @@ int main(int argc, char** argv) {
 
   perform_dry_run(use_argv);
 
-    yh_mark_start();
-    int yh_flag = 0;
-    for (int i = 0; i < MAP_SIZE; i++){
-        if(virgin_bits[i] != 255){
-            yh_flag = 1;
-            break;
-        }
-    }
-    if(yh_flag)
-        yh_print_tb_to_file(virgin_bits, "/home/yunhao/test/huhu");
-    else printf("is a virgin\n");
-    yh_mark_end();
-    yh_wait();
   cull_queue();
 
   show_init_stats();
@@ -8117,7 +8174,6 @@ int main(int argc, char** argv) {
     if (stop_soon) goto stop_fuzzing;
   }
 
-  yh_print_s("fuzz started!\n");
   while (1) {
 
     u8 skipped_fuzz;
@@ -8164,9 +8220,29 @@ int main(int argc, char** argv) {
 
     }
 
-    skipped_fuzz = fuzz_one(use_argv);
+    int yh_cur_skipped = 0;
+      float yh_tmp = -1;
+      if(queue_cur->yh_single_num > 0 && yh_total_num > 0){
+          yh_tmp = (float)((float)queue_cur->yh_single_cnt / (float)queue_cur->yh_single_num) -
+                   (float)((float)yh_total_cnt / (float)yh_total_num);
+      }
+    if(queue_cur->yh_skipped_last_cycle > 0 || queue_cur->yh_single_cnt == 0 ||
+            queue_cur->yh_has_file == 0 || yh_tmp < 0){
+//        u8 *outstr = alloc_printf("%f\n", yh_tmp);
+//        yh_fprintf_str("/home/yunhao/test/log", "a", outstr);
+//        ck_free(outstr);
+      yh_cur_skipped = 0;
+      queue_cur->yh_skipped_last_cycle = 0;
+      skipped_fuzz = fuzz_one(use_argv);
+    }
+    else{
+//        yh_fprintf_str("/home/yunhao/test/log", "a", "skipped for this item!\n");
+        skipped_fuzz = 1;
+      yh_cur_skipped = 1;
+      queue_cur->yh_skipped_last_cycle = 1;
+    }
 
-    if (!stop_soon && sync_id && !skipped_fuzz) {
+    if (!stop_soon && sync_id && !skipped_fuzz && !yh_cur_skipped) {
       yh_mark_start();
       printf("sync_id = %s\n", sync_id);
       yh_mark_end();
@@ -8184,7 +8260,6 @@ int main(int argc, char** argv) {
     current_entry++;
 
   }
-  yh_print_s("fuzz finished!\n");
   if (queue_cur) show_stats();
 
   write_bitmap();

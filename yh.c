@@ -199,7 +199,6 @@ void yh_check_bits_u8(u8 num){
     }
     printf("\n");
 }
-
 void yh_check_bits_s64(s64 num){
     int i = 64;
     int stk[100];
@@ -332,19 +331,22 @@ void yh_warn(){
 }
 
 void yh_print_tb_to_file(void *trace_bits, u8* out_file){
-    u16* tb = (u16*) trace_bits;
-//    FILE* out = fopen(out_file, "w");
+    u8* tb = (u8*) trace_bits;
+    FILE* out = fopen(out_file, "a");
     int cnt = 0;
     for(int i = 0; i < 32768; i++){
-        if((int)tb[i] != 65535)
-            printf("%4d ", tb[i]);
+        if((int)tb[i] != 0) {
+            fprintf(out, "%4d ", tb[i]);
+            fprintf(out, "\n");
+        }
         cnt++;
         if(cnt == 256){
             cnt = 0;
 //            fprintf(out, "\n");
         }
     }
-//    fclose(out);
+    fprintf(out, "\n");
+    fclose(out);
 }
 
 void yh_copy_array(u8* array, u8* array_copy, int len){
@@ -367,26 +369,36 @@ void yh_check_diff(u8* array, u8* array_copy, int len){
     }
 }
 
-//void yh_write_file(u8* out_file, u8* buf, s32 len, s32 apped){
-//    if(apped == 0){
-//        s32 fd = open(out_file, O_RDWR | O_CREAT, 0666);
-//        write(fd, buf, len);
-//        close(fd);
-//    }
-//    else{
-//        printf("append mode\n");
-//        s32 fd = open(out_file, O_RDWR | O_CREAT | O_APPEND, 0666);
-//        write(fd, buf, len);
-//        close(fd);
-//    }
-//}
+void yh_setup_bitmap(u8* total_bitmap, u8* single_bitmap){
+    memset(total_bitmap, 0, sizeof(total_bitmap));
+    memset(single_bitmap, 0, sizeof(single_bitmap));
+}
 
-//void yh_read_file(u8* in_file, u8* buf, s32 len){
-//    s32 fd = open(in_file, O_RDWR | O_CREAT | O_EXCL, 0666);
-//    if(fd < 0){
-//        close(fd);
-//        fd = open(in_file, O_RDWR);
-//        read(fd, buf, len);
-//    }
-//    close(fd);
-//}
+int yh_read_total_bitmap(void* total_bitmap, u8* file_name, u32 len){
+    FILE* in = fopen(file_name, "r");
+    if(!in){
+        memset(total_bitmap, 0, sizeof(total_bitmap));
+        return 0;
+    }
+    fread(total_bitmap, 8, 1, in);
+    fclose(in);
+    return 1;
+}
+
+int yh_read_single_bitmap(u8* single_bitmap, u8* file_name, u32 len){
+    FILE* in = fopen(file_name, "r");
+    if(!in){
+        return 0;
+    }
+    fread(single_bitmap, 8, len, in);
+    fclose(in);
+    return 1;
+}
+
+void yh_write_single_bitmap(u8* single_bitmap, u8* file_name, u32 len){
+    FILE* out = fopen(file_name, "w");
+    if(out) {
+        fwrite(single_bitmap, 8, len, out);
+    }
+    fclose(out);
+}
