@@ -334,7 +334,8 @@ void yh_print_tb_to_file(void *trace_bits, u8* out_file){
     u8* tb = (u8*) trace_bits;
     FILE* out = fopen(out_file, "a");
     int cnt = 0;
-    for(int i = 0; i < 32768; i++){
+    int i;
+    for(i = 0; i < 32768; i++){
         if((int)tb[i] != 0) {
             fprintf(out, "%4d ", tb[i]);
             fprintf(out, "\n");
@@ -355,7 +356,8 @@ void yh_copy_array(u8* array, u8* array_copy, int len){
 
 void yh_check_diff(u8* array, u8* array_copy, int len){
     int flag = 0;
-    for (int i = 0; i < len; i++){
+    int i;
+    for (i = 0; i < len; i++){
         if(array[i] != array_copy[i]){
             flag = 1;
             break;
